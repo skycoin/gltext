@@ -6,10 +6,9 @@ package gltext
 
 import (
 	"fmt"
+	"github.com/go-gl/gl/v3.2-compatibility/gl"
 	"image"
 	"unsafe"
-
-	"github.com/go-gl/gl/v2.1/gl"
 )
 
 // A Font allows rendering of text to an OpenGL context.
@@ -32,7 +31,7 @@ func (f *Font) Texture() uint32 {
 //
 // The image should hold a sprite sheet, defining the graphical layout for
 // every glyph. The config describes font metadata.
-func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
+func loadFont(img *image.RGBA, config *FontConfig, fixedPipeline bool) (f *Font, err error) {
 	f = new(Font)
 	f.config = config
 
@@ -49,8 +48,10 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(ib.Dx()), int32(ib.Dy()), 0,
 		gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(img.Pix))
 
-	// Create display lists for each glyph.
-	f.listbase = gl.GenLists(int32(len(config.Glyphs)))
+	if fixedPipeline {
+		// Create display lists for each glyph.
+		f.listbase = gl.GenLists(int32(len(config.Glyphs)))
+	}
 
 	texWidth := float32(ib.Dx())
 	texHeight := float32(ib.Dy())
@@ -78,31 +79,33 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 		// Advance width (or height if we render top-to-bottom)
 		adv := float32(glyph.Advance)
 
-		gl.NewList(f.listbase+uint32(index), gl.COMPILE)
-		{
-			gl.Begin(gl.QUADS)
+		if fixedPipeline {
+			gl.NewList(f.listbase+uint32(index), gl.COMPILE)
 			{
-				gl.TexCoord2f(tx1, ty2)
-				gl.Vertex2f(0, 0)
-				gl.TexCoord2f(tx2, ty2)
-				gl.Vertex2f(vw, 0)
-				gl.TexCoord2f(tx2, ty1)
-				gl.Vertex2f(vw, vh)
-				gl.TexCoord2f(tx1, ty1)
-				gl.Vertex2f(0, vh)
-			}
-			gl.End()
+				gl.Begin(gl.QUADS)
+				{
+					gl.TexCoord2f(tx1, ty2)
+					gl.Vertex2f(0, 0)
+					gl.TexCoord2f(tx2, ty2)
+					gl.Vertex2f(vw, 0)
+					gl.TexCoord2f(tx2, ty1)
+					gl.Vertex2f(vw, vh)
+					gl.TexCoord2f(tx1, ty1)
+					gl.Vertex2f(0, vh)
+				}
+				gl.End()
 
-			switch config.Dir {
-			case LeftToRight:
-				gl.Translatef(adv, 0, 0)
-			case RightToLeft:
-				gl.Translatef(-adv, 0, 0)
-			case TopToBottom:
-				gl.Translatef(0, -adv, 0)
+				switch config.Dir {
+				case LeftToRight:
+					gl.Translatef(adv, 0, 0)
+				case RightToLeft:
+					gl.Translatef(-adv, 0, 0)
+				case TopToBottom:
+					gl.Translatef(0, -adv, 0)
+				}
 			}
+			gl.EndList()
 		}
-		gl.EndList()
 	}
 
 	err = checkGLError()

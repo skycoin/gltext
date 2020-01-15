@@ -36,5 +36,5 @@ func LoadBitmap(img, config io.Reader, scale int) (*Font, error) {
 	}
 
 	fc.Glyphs.Scale(scale)
-	return loadFont(rgba, &fc)
+	return loadFont(rgba, &fc, true)
 }
