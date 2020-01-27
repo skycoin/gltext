@@ -24,7 +24,7 @@ import (
 //
 // The dir value determines the orientation of the text we render
 // with this font. This should be any of the predefined Direction constants.
-func LoadTruetype(r io.Reader, scale int32, low, high rune, dir Direction) (*Font, error) {
+func LoadTruetype(r io.Reader, scale int32, low, high rune, dir Direction, fixedPipeline bool) (*Font, error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -100,5 +100,5 @@ func LoadTruetype(r io.Reader, scale int32, low, high rune, dir Direction) (*Fon
 		gi++
 	}
 
-	return loadFont(img, &fc)
+	return loadFont(img, &fc, fixedPipeline)
 }
